@@ -91,18 +91,10 @@ public class PrepareItemsDataFeed {
             } else {  //1235
                 productFeatureAndAppls = queryData1("SELECT * FROM (SELECT P.PRODUCT_ID, P.SALES_DISCONTINUATION_DATE, P.ALLIANCE_PRODUCT_ID, P.IS_HAWK_INDEXED, P.HAWK_INDEXED_DATE, P.STATUS_ID, P.PRODUCT_TYPE_ID, P.DOMAIN_PARTY_ID, P.PRIMARY_PRODUCT_CATEGORY_ID, P.LAST_MODIFIED_DATE, P.PRODUCT_UPDATE_DATE, P.PART_NUMBER, P.AAIA_BRAND_ID, P.AAIA_SUB_BRAND_ID, P.NATIONAL_POPULARITY_CODE, P.STD_PART_NUMBER, PCA.ATTR_NAME, PCA.ATTR_VALUE, PCA.PRODUCT_CATEGORY_ID FROM PRODUCT P LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCA ON P.AAIA_BRAND_ID = PCA.PRODUCT_CATEGORY_ID LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCAS ON P.AAIA_SUB_BRAND_ID = PCAS.PRODUCT_CATEGORY_ID WHERE (((((PCAS.ATTR_NAME = 'HAWKSEARCH_ENABLED' OR PCA.ATTR_NAME = 'HAWKSEARCH_ENABLED') AND (PCAS.ATTR_VALUE = 'Y' OR PCA.ATTR_VALUE = 'Y') AND P.ALLIANCE_PRODUCT_ID IS NOT NULL AND P.DOMAIN_PARTY_ID = 'AAPA')))) ORDER BY P.PRODUCT_ID ASC, PCA.ATTR_NAME ASC, PCA.PRODUCT_CATEGORY_ID ASC) AS Products WHERE ((((status_id IS NOT NULL) OR  (status_id != 'PRODUCT_STS_7')  OR (status_id != 'PRODUCT_STS_8') OR (status_id != 'PRODUCT_STS_9')) OR (is_hawk_indexed = 'Y')) AND ((product_type_id = 'FINISHED_GOOD') AND (domain_party_id = 'AAPA') AND (primary_product_category_id IS NOT NULL))) AND ((sales_discontinuation_date IS NULL) OR (sales_discontinuation_date >= "+(new Date(new Timestamp(System.currentTimeMillis()).getTime()))+")) ORDER BY Products.aaia_brand_id;");
   
-//con2.close();
           }
 
 
             //getting result set
-
-
-PreparedStatement statement1;
-PreparedStatement statement2;
-PreparedStatement statement3;
-PreparedStatement statement4;
-PreparedStatement statement5;
 
 
             itemInfoMap = new HashMap<String, Object>();
@@ -127,7 +119,7 @@ PreparedStatement statement5;
                      jobberCore=null;
                      wdCore=null;
 
-                    System.out.println("Part Number | ProductId [" + productFeatureAndAppls.getString("part_number") + " | " + productFeatureAndAppls.getString("product_id") + "]==========count-==="+count++);
+                    System.out.println("Part Number | ProductId [" + productFeatureAndAppls.getString("part_number") + " | " + productFeatureAndAppls.getString("product_id") + "]=======1===count-==="+count++);
                     productId = productFeatureAndAppls.getString("product_id");
                     partNumber = productFeatureAndAppls.getString("part_number");
 
@@ -149,14 +141,7 @@ PreparedStatement statement5;
                     //Code to generate terminology name.
                     name = "";
 
-                    //textDataProduct = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
-                    
-
-        /* 
-        statement1 = con.prepareStatement("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
-        statement1.executeQuery();
-        textDataProduct = statement1.getResultSet();
-        */
+        
         textDataProduct = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
         if(textDataProduct != null && textDataProduct.next()){
                             name = textDataProduct.getString("text_data");
@@ -164,19 +149,14 @@ PreparedStatement statement5;
                                 name = "        ";
                             }
                             textDataProduct.close();
-    //statement1.close();	
+    	
                             statement.close();
 
                     itemInfoMap.put("name", formatContentForCsv(name)); // providing tab space instead of checking name is empty or not
 
 
                     terminologyName = "";
-                    //terminology = queryData("SELECT * FROM product_category WHERE product_category_id="+ productFeatureAndAppls.getString("primary_product_category_id")+" LIMIT 1;");
-                                    /* 
-                statement2 = con.prepareStatement("SELECT * FROM product_category WHERE product_category_id="+ productFeatureAndAppls.getString("primary_product_category_id")+" LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
-                statement2.executeQuery();
-                terminology = statement2.getResultSet();
-                */
+                  
                 terminology = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("primary_product_category_id")+"' LIMIT 1;");
 
 if (terminology != null && terminology.next() && terminology.getString("description") != null) {
@@ -185,8 +165,7 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     
                     terminology.close();
                     statement.close();
-        //statement2.close();
-
+        
                     //Code to generate image url.
                     //Code to send the thumbnail associated with 400 asset width image to hawk.
                     imageUrl = "HARD_CODED_URL";
@@ -197,13 +176,7 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     //Code to generate brand code and brand name.
                     brandName = "";
                     brandCode = null;
-        /* 
-        statement3 = con.prepareStatement("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
-        statement3.executeQuery();
-        brand = statement3.getResultSet();
-        */
-                    //brand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;");
-
+        
                     brand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;");
 
 
@@ -213,15 +186,8 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     }
                     brand.close();
                     statement.close();
-        //statement3.close();
                     //Code to generate sub brand code.
                     subBrandCode = "";
-                    //subBrand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;");
-        /* 
-        statement4 = con.prepareStatement("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
-        statement4.executeQuery();
-        subBrand = statement4.getResultSet();
-        */
                     subBrand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;");                   
 
                     if (subBrand != null  && subBrand.next()) {
@@ -229,8 +195,7 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     }
             subBrand.close();
             statement.close();
-        //statement4.close();
-
+      
                     itemInfoMap.put("url_detail", "HARD_CODED_JSON_PRODUCT_INFO");
 
                     //Code to generate short description.
@@ -241,19 +206,13 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     }
 
                     textDataMarket  = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'MARKETING_DESC' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
-                /* 
-                statement5 = con.prepareStatement("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'MARKETING_DESC' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
-                statement5.executeQuery();
-                textDataMarket = statement5.getResultSet();
-         */
-
+      
                     if(textDataMarket.next()) {
                     marketDesc = textDataMarket.getString("text_data");
                     } else {
                         marketDesc = "        ";
                     }
                     textDataMarket.close();
-    //statement5.close();
                         statement.close();
 
                     descriptionLong = "";
