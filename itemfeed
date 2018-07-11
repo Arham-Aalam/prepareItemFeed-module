@@ -1,0 +1,559 @@
+public static Map<String, Object> prepareItemsDataFeed(DispatchContext dctx, Map<String, Object> context) {
+        Delegator delegator = dctx.getDelegator();
+        LocalDispatcher dispatcher = dctx.getDispatcher();
+        Locale locale = (Locale) context.get("locale");
+        Map<String, Object> dataFeedMap = new HashMap<String, Object>();
+        String outputDirLocation = (String) context.get("outputDirLocation");
+        String fileName = (String) context.get("fileName");
+        String templateLocation = (String) context.get("templateLocation");
+        boolean isHeader = true;
+        int totalItems = 0;
+        Timestamp lastFeedTimestamp = (Timestamp) context.get("lastFeedTimestamp");
+        GenericValue userLogin = (GenericValue) context.get("userLogin");
+        List<Map<String, Object>> itemInfoList = new LinkedList<Map<String, Object>>();
+        Map<String, Object> itemDataFeeds = new HashMap<String, Object>();
+        Timestamp nowTimestamp = UtilDateTime.nowTimestamp();
+        Transaction parentTx = null;
+        Transaction defaultParentTx = null;
+        Transaction runningTx = null;
+
+        String includeProducts = EntityUtilProperties.getPropertyValue("hawksearch", "hawksearch.ALL_PRODUCTS", delegator);
+        String endPoint = EntityUtilProperties.getPropertyValue("AWSS3Credentials", "awss3.endpoint", delegator);
+        Map<String, Object> itemInfoMap = null;
+        EntityListIterator productFeatureAndAppls = null;
+        GenericValue brandAndBrandOwner = null;
+
+        // Declaring the global set of variables to decrease heap memory consumption for large data sets.
+        BigDecimal retailPrice;
+        GenericValue goodCore = null;
+        GenericValue jobberCore = null;
+        GenericValue jsonProdCtntAndInfo = null;
+        GenericValue product = null;
+        GenericValue productContentInfo;
+        GenericValue subBrand = null;
+        GenericValue wdCore = null;
+
+        List<BigDecimal> priceList;
+
+        String brandCode;
+        String brandName;
+        String imageUrl;
+        String marketDesc;
+        String name;
+        String partNumber = "";
+        String productId = "";
+        String subBrandCode;
+        String terminologyName;
+
+        StringBuilder descriptionShort;
+        String descriptionLong;
+        StringBuilder sku;
+        try {
+            File file = new File(outputDirLocation + "/" + fileName);
+            //Writer writer = new BufferedWriter(new FileWriter(file, true));
+            Charset cs = Charset.forName("UTF-8");
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), cs));
+            
+
+            /********************************** 1 start ******************/
+            EntityCondition eligibleProductCond = EntityCondition.makeCondition(UtilMisc.toList(
+                EntityCondition.makeCondition("statusId", EntityOperator.NOT_EQUAL, "PRODUCT_STS_7"),
+                EntityCondition.makeCondition("statusId", EntityOperator.NOT_EQUAL, "PRODUCT_STS_8"),
+                EntityCondition.makeCondition("statusId", EntityOperator.NOT_EQUAL, "PRODUCT_STS_9"),
+                EntityCondition.makeCondition("statusId", EntityOperator.EQUALS, null)
+            ), EntityOperator.OR);
+
+            EntityCondition modifiedProductCond = EntityCondition.makeCondition("isHawkIndexed", EntityOperator.EQUALS, "Y");
+            EntityCondition globalProductCondition = EntityCondition.makeCondition(eligibleProductCond, EntityOperator.OR, modifiedProductCond);
+            
+            EntityCondition cond = EntityCondition.makeCondition(UtilMisc.toList(
+                    EntityCondition.makeCondition("productTypeId", EntityOperator.EQUALS, "FINISHED_GOOD"),
+                    EntityCondition.makeCondition("domainPartyId", EntityOperator.EQUALS, "AAPA"),
+                    EntityCondition.makeCondition("primaryProductCategoryId", EntityOperator.NOT_EQUAL, null)
+            ), EntityOperator.AND);
+            globalProductCondition = EntityCondition.makeCondition(globalProductCondition, EntityOperator.AND, cond);
+            if (UtilValidate.isNotEmpty(includeProducts) && "N".equals(includeProducts)) {
+                EntityCondition dateCondition = EntityCondition.makeCondition(UtilMisc.toList(
+                        EntityCondition.makeCondition("lastModifiedDate", EntityOperator.GREATER_THAN, lastFeedTimestamp),
+                        EntityCondition.makeCondition("productUpdateDate", EntityOperator.GREATER_THAN, lastFeedTimestamp)
+                ), EntityOperator.OR);
+                globalProductCondition = EntityCondition.makeCondition(globalProductCondition, EntityOperator.AND, dateCondition);
+            }
+            EntityCondition disDateCondition = EntityCondition.makeCondition(UtilMisc.toList(
+                    EntityCondition.makeCondition("salesDiscontinuationDate", EntityOperator.EQUALS, null),
+                    EntityCondition.makeCondition("salesDiscontinuationDate", EntityOperator.GREATER_THAN_EQUAL_TO, nowTimestamp)
+            ), EntityOperator.OR);
+
+            globalProductCondition = EntityCondition.makeCondition(globalProductCondition, EntityOperator.AND, disDateCondition);
+          /********************************** 1 end ******************/  
+            /*
+            defaultParentTx = TransactionUtil.suspend();//Suspend T0 - Default Transaction
+            try {
+                TransactionUtil.begin();  //Begin T1
+            } catch (GenericTransactionException gte) {
+                Debug.logError(gte, "Unable to begin transaction T1", module);
+            }
+            */
+
+
+            productFeatureAndAppls = EntityQuery.use(delegator).from("ProductAndProdFeatureApplAndProdCatAttr").where(globalProductCondition).orderBy("aaiaBrandId").filterByDate().fetchSize(Integer.MIN_VALUE).queryIterator();
+            parentTx = TransactionUtil.suspend(); //Suspend T1
+            try {
+                TransactionUtil.begin();  //Begin T2
+            } catch (GenericTransactionException gte) {
+                Debug.logError(gte, "Unable to begin transaction T2", module);
+            }
+            if (productFeatureAndAppls != null) {
+                GenericValue productFeatureAndAppl = null;
+                while ((productFeatureAndAppl = productFeatureAndAppls.next()) != null) {
+
+                    /********************************** 2 start ******************/
+                    Debug.logInfo("Part Number | ProductId [" + productFeatureAndAppl.getString("partNumber") + " | " + productFeatureAndAppl.getString("productId") + "]", module);
+                    itemInfoMap = new HashMap<String, Object>();
+                    productId = productFeatureAndAppl.getString("productId");
+                    partNumber = productFeatureAndAppl.getString("partNumber");
+                    if (UtilValidate.isEmpty(partNumber)) {
+                        Debug.logError("Part Number is not found for the product : " + productId, module);
+                        continue;
+                    }
+                    if (UtilValidate.isEmpty(productFeatureAndAppl.getString("description"))) {
+                        Debug.logError("Alliance Product ID is not found for the product : " + productId, module);
+                        continue;
+                    }
+                    /********************************** 2 end ******************/
+
+                    /********************************** 3 Start ******************/
+                    product = EntityQuery.use(delegator).from("Product").where("productId", productId).queryOne();
+                    // Item Operation
+                    if (UtilValidate.isNotEmpty(includeProducts) && "Y".equals(includeProducts)) {
+                        //Debug.logInfo("Include all products set as Y", module);
+                        if (UtilValidate.isEmpty(lastFeedTimestamp) || UtilValidate.isEmpty(productFeatureAndAppl.getString("isHawkIndexed"))
+                                || "N".equals(productFeatureAndAppl.getString("isHawkIndexed"))) {
+                            if (!("PRODUCT_STS_7".equals(productFeatureAndAppl.getString("statusId"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppl.getString("statusId"))) ||
+                                    !("PRODUCT_STS_9".equals(productFeatureAndAppl.getString("statusId"))) || productFeatureAndAppl.getString("statusId") == null) {
+                                itemInfoMap.put("item_operation", "A");
+                                if (product != null) {
+                                    product.set("isHawkIndexed", "Y");
+                                    product.set("hawkIndexedDate", nowTimestamp);
+                                    product.store();
+                                }
+                            } else {
+                                Debug.logError("The product is not eligible for Hawk data feed " + productId, module);
+                                continue;
+                            }
+                        } else {
+                            if (UtilValidate.isNotEmpty(lastFeedTimestamp) && "Y".equals(productFeatureAndAppl.getString("isHawkIndexed"))) {
+                                if (!("PRODUCT_STS_7".equals(productFeatureAndAppl.getString("statusId"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppl.getString("statusId"))) ||
+                                        !("PRODUCT_STS_9".equals(productFeatureAndAppl.getString("statusId"))) || productFeatureAndAppl.getString("statusId") == null) {
+                                    itemInfoMap.put("item_operation", "U");
+                                } else {
+                                    itemInfoMap.put("item_operation", "D");
+                                    if (product != null) {
+                                        product.set("isHawkIndexed", "N");
+                                        product.set("hawkIndexedDate", nowTimestamp);
+                                        product.store();
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                    if (UtilValidate.isEmpty(lastFeedTimestamp) || UtilValidate.isEmpty(productFeatureAndAppl.getString("isHawkIndexed"))
+                            || "N".equals(productFeatureAndAppl.getString("isHawkIndexed"))) {
+                        if (!("PRODUCT_STS_7".equals(productFeatureAndAppl.getString("statusId"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppl.getString("statusId"))) ||
+                                !("PRODUCT_STS_9".equals(productFeatureAndAppl.getString("statusId"))) || productFeatureAndAppl.getString("statusId") == null) {
+                            itemInfoMap.put("item_operation", "A");
+                            if (product != null) {
+                                product.set("isHawkIndexed", "Y");
+                                product.set("hawkIndexedDate", nowTimestamp);
+                                product.store();
+                            }
+                        } else {
+                            Debug.logError("The product is not eligible for Hawk data feed " + productId, module);
+                            continue;
+                        }
+                    } else {
+                        if (UtilValidate.isNotEmpty(lastFeedTimestamp) && "Y".equals(productFeatureAndAppl.getString("isHawkIndexed")) && UtilValidate.isNotEmpty(productFeatureAndAppl.getTimestamp("lastModifiedDate")) && lastFeedTimestamp.before(productFeatureAndAppl.getTimestamp("lastModifiedDate")) || UtilValidate.isNotEmpty(productFeatureAndAppl.getTimestamp("productUpdateDate")) && lastFeedTimestamp.before(productFeatureAndAppl.getTimestamp("productUpdateDate"))) {
+                            if (!("PRODUCT_STS_7".equals(productFeatureAndAppl.getString("statusId"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppl.getString("statusId"))) ||
+                                    !("PRODUCT_STS_9".equals(productFeatureAndAppl.getString("statusId"))) || productFeatureAndAppl.getString("statusId") == null) {
+                                itemInfoMap.put("item_operation", "U");
+                            } else {
+                                itemInfoMap.put("item_operation", "D");
+                                if (product != null) {
+                                    product.set("isHawkIndexed", "N");
+                                    product.set("hawkIndexedDate", nowTimestamp);
+                                    product.store();
+                                }
+                            }
+                        } else {
+                            continue;
+                        }
+                    }
+                    }
+                    /********************************** 3 end ******************/
+
+                    /********************************** 4 start ******************/
+                    itemInfoMap.put("unique_id", productFeatureAndAppl.getString("description"));
+                    if (UtilValidate.isEmpty(productFeatureAndAppl.getString("nationalPopularityCode"))) {
+                        Debug.logWarning("National Popularity Code is not found for the product : " + productId, module);
+                    }
+                    itemInfoMap.put("sort_default", EntityUtilProperties.getPropertyValue("hawksearch", "hawksearch." + productFeatureAndAppl.getString("nationalPopularityCode"), "70000000", delegator));
+
+                    //Code to generate terminology name.
+                    name = "";
+                    ProductContentWrapper allianceProductName = new ProductContentWrapper(dispatcher, productFeatureAndAppl.getRelatedOne("Product", false), locale, "text/plain");
+                    if (UtilValidate.isNotEmpty(allianceProductName)) {
+                        name = allianceProductName.get("PRODUCT_NAME", "string").toString();
+                        if (UtilValidate.isNotEmpty(name)) {
+                            itemInfoMap.put("name", formatContentForCsv(name));
+                        }
+                    }
+                    
+                    terminologyName = "";
+                    GenericValue terminology = EntityQuery.use(delegator).from("ProductCategory").where("productCategoryId", productFeatureAndAppl.getString("primaryProductCategoryId")).queryOne();
+                    if (terminology != null && UtilValidate.isNotEmpty(terminology.getString("description"))) {
+                        terminologyName = terminology.getString("description");
+                    }
+                    /********************************** 4 end ******************/
+
+                    /********************************** 5 start ******************/
+                    //Code to generate image url.
+                    //Code to send the thumbnail associated with 400 asset width image to hawk.
+                    imageUrl = null;
+                    EntityCondition condition = EntityCondition.makeCondition(UtilMisc.toList(
+                            EntityCondition.makeCondition("productId", EntityOperator.EQUALS, productId),
+                            EntityCondition.makeCondition("contentTypeId", EntityOperator.EQUALS, "P04"),
+                            EntityCondition.makeCondition("contentName", EntityOperator.NOT_EQUAL, null),
+                            EntityCondition.makeCondition("contentAssocTypeId", EntityOperator.EQUALS, "ALT_SIZE_THUMBNAIL")), EntityOperator.AND);
+                    productContentInfo = EntityQuery.use(delegator).from("ProductContentAndAssoc").where(condition).queryFirst();
+                    if (productContentInfo != null) {
+                        GenericValue dataResourceMetaData = EntityQuery.use(delegator).from("DataResourceMetaData")
+                                .where("dataResourceId", productContentInfo.getString("toDataResourceId"), "metaDataPredicateId", "url").queryFirst();
+                        if (dataResourceMetaData != null) {
+                            if (UtilValidate.isNotEmpty(dataResourceMetaData.getString("metaDataValue"))) {
+                                imageUrl = dataResourceMetaData.getString("metaDataValue");
+                                itemInfoMap.put("image", dataResourceMetaData.getString("metaDataValue"));
+                            }
+                        }
+                    }
+                    /********************************** 5 end ******************/
+
+                    /********************************** 6 Start ******************/
+                    //Code to send the thumbnail associated with 400 asset height image to hawk.
+                    if (imageUrl == null) {
+                        EntityCondition imageCondition = EntityCondition.makeCondition(UtilMisc.toList(
+                                EntityCondition.makeCondition("productId", EntityOperator.EQUALS, productId),
+                                EntityCondition.makeCondition("contentTypeId", EntityOperator.EQUALS, "DOCUMENT"),
+                                EntityCondition.makeCondition("dataResourceId", EntityOperator.EQUALS, null),
+                                EntityCondition.makeCondition("contentAssocTypeId", EntityOperator.EQUALS, "ALT_SIZE")), EntityOperator.AND);
+                        List<GenericValue> productContentAssocs = EntityQuery.use(delegator).from("ProductContentAndAssoc").where(imageCondition).queryList();
+                        for (GenericValue productContentAssoc : productContentAssocs) {
+                            if (productContentAssoc != null && UtilValidate.isNotEmpty(productContentAssoc.getString("toDataResourceId"))) {
+                                GenericValue dataResourceMetaData = EntityQuery.use(delegator).from("DataResourceMetaData").where("dataResourceId", productContentAssoc.getString("toDataResourceId"), "metaDataPredicateId", "asset-height", "metaDataValue", "400").queryFirst();
+                                if (dataResourceMetaData != null) {
+                                    GenericValue contentAssoc = EntityQuery.use(delegator).from("ContentAssocViewTo").where("contentIdStart", productContentAssoc.getString("contentId"), "caContentAssocTypeId", "ALT_SIZE_THUMBNAIL").queryFirst();
+                                    if (contentAssoc != null) {
+                                        GenericValue metaDataUrl = EntityQuery.use(delegator).from("DataResourceMetaData").where("dataResourceId", contentAssoc.getString("dataResourceId"), "metaDataPredicateId", "url").queryFirst();
+                                        if (metaDataUrl != null) {
+                                            imageUrl = metaDataUrl.getString("metaDataValue");
+                                            itemInfoMap.put("image", imageUrl);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    /********************************** 6 end ******************/
+
+                    /********************************** 7 start ******************/
+                    // Full size image with FRO orientation-view
+                    if (imageUrl == null) {
+                        HashMap<String, Integer> contentAssocAndMetaDataMap = new HashMap<String, Integer>();
+                        EntityCondition orientationViewCond = EntityCondition.makeCondition(UtilMisc.toList(
+                                EntityCondition.makeCondition("productId", EntityOperator.EQUALS, productId),
+                                EntityCondition.makeCondition("contentName", EntityOperator.NOT_EQUAL, null),
+                                EntityCondition.makeCondition("contentAssocTypeId", EntityOperator.EQUALS, "ALT_SIZE"),
+                                EntityCondition.makeCondition("metaDataPredicateId", EntityOperator.EQUALS, "orientation-view"),
+                                EntityCondition.makeCondition("metaDataValue", EntityOperator.EQUALS, "FRO")), EntityOperator.AND);
+                        List<GenericValue> productContentAssocAndMetaDataList = EntityQuery.use(delegator).from("ProductContentAssocAndMetaData").where(orientationViewCond).queryList();
+
+                        for (GenericValue productContentAssocAndMetaData: productContentAssocAndMetaDataList) {
+                            EntityCondition assetWidthCond = EntityCondition.makeCondition(UtilMisc.toList(
+                                    EntityCondition.makeCondition("toDataResourceId", EntityOperator.EQUALS, productContentAssocAndMetaData.getString("toDataResourceId")),
+                                    EntityCondition.makeCondition("metaDataPredicateId", EntityOperator.EQUALS, "asset-width")), EntityOperator.AND);
+                            GenericValue assetWidth = EntityQuery.use(delegator).from("ProductContentAssocAndMetaData").where(assetWidthCond).queryFirst();
+                            if (assetWidth != null) {
+                                contentAssocAndMetaDataMap.put(assetWidth.getString("toDataResourceId"), Integer.parseInt(assetWidth.getString("metaDataValue")));
+                            }
+                        }
+
+                        // Iterating over the map to find key with max value
+                        String maxWidthImg = "";
+                        for (Map.Entry entry : contentAssocAndMetaDataMap.entrySet()) {
+                            if (entry.getValue() == Collections.max(contentAssocAndMetaDataMap.values())) {
+                                maxWidthImg = (String) entry.getKey();
+                            }
+                        }
+
+                        if (UtilValidate.isNotEmpty(maxWidthImg)) {
+                            GenericValue assetId = EntityQuery.use(delegator).from("ProductContentAssocAndMetaData").where("toDataResourceId", maxWidthImg).queryFirst();
+                            if (assetId != null && UtilValidate.isNotEmpty(assetId.getString("contentName"))) {
+                                 EntityCondition maxAssetImg = EntityCondition.makeCondition(UtilMisc.toList(
+                                        EntityCondition.makeCondition("productId", EntityOperator.EQUALS, productId),
+                                        EntityCondition.makeCondition("contentName", EntityOperator.EQUALS, assetId.getString("contentName")),
+                                        EntityCondition.makeCondition("contentAssocTypeId", EntityOperator.EQUALS, "ALT_SIZE_THUMBNAIL")), EntityOperator.AND);
+                                GenericValue contentAndAssoc = EntityQuery.use(delegator).from("ProductContentAndAssoc").where(maxAssetImg).queryFirst();
+                                if (contentAndAssoc != null && UtilValidate.isNotEmpty(contentAndAssoc.getString("toDataResourceId"))) {
+                                    GenericValue dataResourceMetaData = EntityQuery.use(delegator).from("DataResourceMetaData").where("dataResourceId", contentAndAssoc.getString("toDataResourceId"), "metaDataPredicateId", "url").queryFirst();
+                                    if (dataResourceMetaData != null) {
+                                        imageUrl = dataResourceMetaData.getString("metaDataValue");
+                                        itemInfoMap.put("image", imageUrl);
+                                    }
+                                }
+                             }
+                        }
+                    }
+                    /********************************** 7 end ******************/
+
+                    /********************************** 8 start ******************/
+                    // Full size image
+                if (imageUrl == null) {
+                    EntityCondition maxImageCond = EntityCondition.makeCondition(UtilMisc.toList(
+                            EntityCondition.makeCondition("productId", EntityOperator.EQUALS, productId),
+                            EntityCondition.makeCondition("contentName", EntityOperator.NOT_EQUAL, null),
+                            EntityCondition.makeCondition("contentAssocTypeId", EntityOperator.EQUALS, "ALT_SIZE"),
+                            EntityCondition.makeCondition("metaDataPredicateId", EntityOperator.EQUALS, "asset-width")), EntityOperator.AND);
+                    GenericValue productContentAssocAndMetaData = EntityQuery.use(delegator).from("ProductContentAssocAndMetaData").where(maxImageCond).orderBy("-metaDataValue").queryFirst();
+                    if (productContentAssocAndMetaData != null) {
+                        GenericValue assetId = EntityQuery.use(delegator).from("ProductContentAssocAndMetaData").where("toDataResourceId", productContentAssocAndMetaData.getString("toDataResourceId")).queryFirst();
+                        if (assetId != null && UtilValidate.isNotEmpty(assetId.getString("contentName"))) {
+                             EntityCondition maxAssetImg = EntityCondition.makeCondition(UtilMisc.toList(
+                                    EntityCondition.makeCondition("productId", EntityOperator.EQUALS, productId),
+                                    EntityCondition.makeCondition("contentName", EntityOperator.EQUALS, assetId.getString("contentName")),
+                                    EntityCondition.makeCondition("contentAssocTypeId", EntityOperator.EQUALS, "ALT_SIZE_THUMBNAIL")), EntityOperator.AND);
+                             GenericValue contentAndAssoc = EntityQuery.use(delegator).from("ProductContentAndAssoc").where(maxAssetImg).queryFirst();
+                            if (contentAndAssoc != null && UtilValidate.isNotEmpty(contentAndAssoc.getString("toDataResourceId"))) {
+                                GenericValue dataResourceMetaData = EntityQuery.use(delegator).from("DataResourceMetaData").where("dataResourceId", contentAndAssoc.getString("toDataResourceId"), "metaDataPredicateId", "url").queryFirst();
+                                if (dataResourceMetaData != null) {
+                                    imageUrl = dataResourceMetaData.getString("metaDataValue");
+                                    itemInfoMap.put("image", imageUrl);
+                                }
+                            }
+                        }
+                    }
+                    }
+                    /********************************** 8 end ******************/
+
+
+                    /********************************** 9 Start ******************/
+                    //Code to generate brand code and brand name.
+                    brandName = "";
+                    brandCode = null;
+                    GenericValue brand = EntityQuery.use(delegator).from("ProductCategory").where("productCategoryId", productFeatureAndAppl.getString("aaiaBrandId")).queryOne();
+                    if (brand != null) {
+                        brandName = brand.getString("description");
+                        brandCode = brand.getString("categoryName");
+                    }
+                    //Code to generate sub brand code.
+                    subBrandCode = "";
+                    subBrand = EntityQuery.use(delegator).from("ProductCategory").where("productCategoryId", productFeatureAndAppl.getString("aaiaSubBrandId")).queryOne();
+                    if (subBrand != null) {
+                        subBrandCode = subBrand.getString("categoryName");
+                    }
+
+                    //Code to generate the JSON Bucket URL.
+                    jsonProdCtntAndInfo = EntityQuery.use(delegator).from("ProductContentAndInfo").where("productId", productId, "productContentTypeId", "JSON_DOCUMENT").filterByDate().queryFirst();
+                    if (jsonProdCtntAndInfo != null) {
+                        itemInfoMap.put("url_detail", endPoint + jsonProdCtntAndInfo.getString("drObjectInfo"));
+                    }
+
+                    //Code to generate short description.
+                    descriptionShort = new StringBuilder(brandName);
+                    if (UtilValidate.isNotEmpty(terminologyName)) {
+                        descriptionShort = descriptionShort.append(" ").append(terminologyName);
+                    itemInfoMap.put("description_short", formatContentForCsv(descriptionShort.toString()));
+
+                    }
+                    ProductContentWrapper productContentWrapper = new ProductContentWrapper(dispatcher, productFeatureAndAppl.getRelatedOne("Product", false), locale, "text/plain");
+                    //Code to get the market description for the product
+                    marketDesc = productContentWrapper.get("MARKETING_DESC", "string").toString();
+
+                    descriptionLong = "";
+                    //Code to generate long description.
+                    if (UtilValidate.isNotEmpty(marketDesc)) {
+                        descriptionLong = marketDesc;
+                    }
+
+                    //Code to generate the sku.
+                    sku = new StringBuilder();
+                    if (UtilValidate.isNotEmpty(productFeatureAndAppl.getString("stdPartNumber"))) {
+                        sku = sku.append(productFeatureAndAppl.getString("stdPartNumber")).append("-");
+                    } else {
+                        sku = sku.append("-");
+                    }
+                    if (UtilValidate.isNotEmpty(brandCode)) {
+                        sku = sku.append(brandCode).append("-");
+                    } else {
+                        sku = sku.append("-");
+                    }
+                    if (UtilValidate.isNotEmpty(subBrandCode)) {
+                        sku = sku.append(subBrandCode);
+                    }
+
+                    itemInfoMap.put("sku", sku);
+                    if (UtilValidate.isNotEmpty(descriptionLong)) {
+                    itemInfoMap.put("description_long", formatContentForCsv(descriptionLong.toString()));
+
+                    }
+                    /********************************** 9 end ******************/
+
+
+                    /********************************** 10 Start ******************/
+                    // Retail Price
+                    retailPrice = BigDecimal.ZERO;
+                    GenericValue zapPrice = EntityQuery.use(delegator).from("ProductPrice")
+                            .where("productId", productId, "productPriceTypeId", "LIST_PRICE", "priceCode", "ZAP").filterByDate().queryFirst();
+                    if (zapPrice != null && UtilValidate.isNotEmpty(zapPrice.getBigDecimal("price"))) {
+                        retailPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
+                    } else {
+                        GenericValue listPrice = EntityQuery.use(delegator).from("ProductPrice")
+                                .where("productId", productId, "productPriceTypeId", "LIST_PRICE", "priceCode", "LST").filterByDate().queryFirst();
+                        if (listPrice != null && UtilValidate.isNotEmpty(listPrice.getBigDecimal("price"))) {
+                            retailPrice = listPrice.getBigDecimal("price");
+                        } else {
+                            GenericValue jobberPrice = EntityQuery.use(delegator).from("ProductPrice")
+                                    .where("productId", productId, "productPriceTypeId", "JOBBER_PRICE").filterByDate().queryFirst();
+                            if (jobberPrice != null && UtilValidate.isNotEmpty(jobberPrice.getBigDecimal("price"))) {
+                                retailPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
+                            } else {
+                                GenericValue quotePrice = EntityQuery.use(delegator).from("ProductPrice")
+                                        .where("productId", productId, "productPriceTypeId", "QOT").filterByDate().queryFirst();
+                                if (quotePrice != null && UtilValidate.isNotEmpty(quotePrice.getBigDecimal("price"))) {
+                                    retailPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                } else {
+                                    GenericValue userPrice = EntityQuery.use(delegator).from("ProductPrice")
+                                            .where("productId", productId, "productPriceTypeId", "USR").filterByDate().queryFirst();
+                                    if (userPrice != null && UtilValidate.isNotEmpty(userPrice.getBigDecimal("price"))) {
+                                        retailPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                    } else {
+                                        GenericValue wdPrice = EntityQuery.use(delegator).from("ProductPrice")
+                                                .where("productId", productId, "productPriceTypeId", "WD1").filterByDate().queryFirst();
+                                        if (wdPrice != null && UtilValidate.isNotEmpty(wdPrice.getBigDecimal("price"))) {
+                                            retailPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                        } else {
+                                            retailPrice = new BigDecimal(1234.56);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    itemInfoMap.put("retailPrice", retailPrice);
+                    /********************************** 10 end ******************/
+
+
+                    /********************************** 11 Start ******************/
+                    // Price Special Calculation
+                    priceList = new ArrayList<BigDecimal>();
+                    goodCore = EntityQuery.use(delegator).from("ProductPrice").where("productId", productId, "productPriceTypeId", "CRG").filterByDate().queryFirst();
+                    if (goodCore != null){
+                        priceList.add(goodCore.getBigDecimal("price"));
+                    }
+
+                    // Jobber Core
+
+                    jobberCore = EntityQuery.use(delegator).from("ProductPrice").where("productId", productId, "productPriceTypeId", "CRJ").filterByDate().queryFirst();
+                    if (jobberCore != null){
+                        priceList.add(jobberCore.getBigDecimal("price"));
+                    }
+
+                    // Wd Core
+                    wdCore = EntityQuery.use(delegator).from("ProductPrice").where("productId", productId, "productPriceTypeId", "CRW").filterByDate().queryFirst();
+                    if (wdCore != null){
+                        priceList.add(wdCore.getBigDecimal("price"));
+                    }
+
+                    // Maximum value for the above calculated prices.
+                    if (UtilValidate.isNotEmpty(priceList)) {
+                        itemInfoMap.put("priceSpecial", Collections.max(priceList));
+                    }
+                    itemInfoList.add(itemInfoMap);
+                    /********************************** 11 end ******************/
+
+                    /********************************** 12 Start ******************/
+                    if (itemInfoList.size() % 1000 == 0)     {
+                        totalItems = totalItems + itemInfoList.size();
+                        dataFeedMap.put("dataFeedList", (List) itemInfoList);
+                        dataFeedMap.put("isHeader", isHeader);
+                        FreeMarkerWorker.renderTemplateAtLocation(templateLocation, dataFeedMap, writer);
+                        itemInfoList.clear();
+                        isHeader = false;
+                        TransactionUtil.commit();  //Commit T2
+                        
+                        runningTx = TransactionUtil.suspend(); //Suspend T2
+
+                        TransactionUtil.resume(defaultParentTx); //Resume T1
+
+                        GenericValue dummyRecord = EntityQuery.use(delegator).from("DataManagerConfig").where("configId", "DUMMY").queryOne();
+
+                        defaultParentTx = TransactionUtil.suspend(); //Suspend T1
+
+                        TransactionUtil.resume(runningTx); //Resume T2
+                    }
+                    /********************************** 12 end ******************/
+                } // end while
+
+                TransactionUtil.commit();  //Commit T2
+
+                TransactionUtil.resume(parentTx); //Resume T1
+
+                /********************************** 13 Start ******************/
+                if (itemInfoList.size() > 0 || isHeader)     {
+                    totalItems = totalItems + itemInfoList.size();
+                    dataFeedMap.put("dataFeedList", (List) itemInfoList);
+                    dataFeedMap.put("isHeader", isHeader);
+                    FreeMarkerWorker.renderTemplateAtLocation(templateLocation, dataFeedMap, writer);
+                    itemInfoList.clear();
+                }
+                writer.flush();
+                writer.close();
+                itemDataFeeds.put("dataFeedListSize", String.valueOf(totalItems));
+                productFeatureAndAppls.close();
+            } else {
+                Debug.logError("Unable to generate the data feed. No Product(s) in the system have Alliance Product ID set.", module);
+            }
+            /********************************** 13 end ******************/
+        } catch (GenericEntityException gee) {
+            Debug.logError("Error occurred during entity operation :" + gee.getMessage(), module);
+            return ServiceUtil.returnError("Error occurred during entity operation" + gee.getMessage());
+        } catch (FileNotFoundException e) {
+            Debug.logError(e, module);
+            return ServiceUtil.returnError(e.getMessage());
+        } catch (MalformedURLException e) {
+            Debug.logError(e, module);
+            return ServiceUtil.returnError(e.getMessage());
+        } catch (IOException e) {
+            Debug.logError(e, module);
+            return ServiceUtil.returnError(e.getMessage());
+        } catch (TemplateException e) {
+            Debug.logError(e, module);
+            return ServiceUtil.returnError(e.getMessage());
+        } finally {
+            try {
+                productFeatureAndAppls.close();
+
+                try {
+                    TransactionUtil.commit(); //Commit T1
+                } catch (GenericTransactionException e) {
+                    //log warning if error thrown when commiting transaction T1
+                    Debug.logWarning("Long transaction", module);
+                }                               
+
+                if (defaultParentTx != null) TransactionUtil.resume(defaultParentTx); //Resume T0 - Default transaction
+            } catch (GenericEntityException e) {
+                Debug.logError("Problem closing EntityListIterator" + e.getMessage(), module);
+                return ServiceUtil.returnError("Problem closing the EntityListIterator" +e.getMessage());
+            }
+        }
+        return itemDataFeeds;
+    }
