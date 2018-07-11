@@ -27,14 +27,12 @@ import java.math.BigDecimal;
 public class PrepareItemsDataFeed {
 
     static Connection con;
-static Connection con2;
-	static final String DB_NAME = "aapa";
+    static Connection con2;
+    static final String DB_NAME = "aapa";
     static final String TABLE_NAME = "product";
     static PreparedStatement statement;
-    static StringBuilder csvFormattedString;
-    static PreparedStatement st;
 
-	public static void main(String[] arg) {
+    public static void main(String[] arg) {
 
     String filePath = "", fileName = "", zipName = "", productId = "", partNumber = "", name = "", terminologyName = "", imageUrl = "", brandName = "", brandCode = "", subBrandCode = "";
     String marketDesc, descriptionLong;
@@ -64,73 +62,75 @@ static Connection con2;
 
     String includeProducts = "N";  // Also test for Y
         
-		nowTimestamp = Timestamp.valueOf(
-		java.time.LocalDate.of(2018, 6, 25).atStartOfDay()
-	);
-		lastFeedTimestamp = Timestamp.valueOf(
-        java.time.LocalDate.of(2018, 4, 19).atStartOfDay()
-);
+        nowTimestamp = Timestamp.valueOf(java.time.LocalDate.of(2018, 6, 25).atStartOfDay());
+        lastFeedTimestamp = Timestamp.valueOf(java.time.LocalDate.of(2018, 4, 19).atStartOfDay());
+        sc = new Scanner(System.in);
 
-		sc = new Scanner(System.in);
-
-			try {
-			BufferedReader buffReader = new BufferedReader(new FileReader("example.txt"));
-			filePath = buffReader.readLine();
-			fileName = buffReader.readLine();
+        try {
+            BufferedReader buffReader = new BufferedReader(new FileReader("example.txt"));
+            filePath = buffReader.readLine();
+            fileName = buffReader.readLine();
             zipName = buffReader.readLine();
             buffReader.close();
-			} catch (Exception e) {
-				 e.printStackTrace();
-			}
+        } catch (Exception e) {
+             e.printStackTrace();
+        }
 
 
-		try {
-
-			//file objects
-			bufferWrite = new BufferedWriter(new OutputStreamWriter(
+        try {
+            //file objects
+            bufferWrite = new BufferedWriter(new OutputStreamWriter(
             new FileOutputStream(new File(filePath + "/" + fileName + ".txt")), StandardCharsets.UTF_8));
-			bufferWrite.write("unique_id"+"	"+"name"+ "	"+"url_detail"+"	"+"image"+"	"+"price_retail"+"	"+"price_sale" +"	"+ "price_special" +"	"+ "group_id" +"	"+ "description_short" +"	"+ "description_long" +"	"+ "sku" +"	"+ "sort_default" +"	"+ "sort_rating" +"	"+ "item_operation\n");
+            bufferWrite.write("unique_id"+"    "+"name"+ "    "+"url_detail"+"    "+"image"+"    "+"price_retail"+"    "+"price_sale" +"    "+ "price_special" +"    "+ "group_id" +"    "+ "description_short" +"    "+ "description_long" +"    "+ "sku" +"    "+ "sort_default" +"    "+ "sort_rating" +"    "+ "item_operation\n");
 
-			connectToDB2();
-	connectToDB();
-			int count = 0;
-		 	if(includeProducts.equals("N")){  //equal to 'N' && not empty  12345
-			
-			productFeatureAndAppls = queryData1("SELECT * FROM (SELECT P.PRODUCT_ID, P.SALES_DISCONTINUATION_DATE, P.ALLIANCE_PRODUCT_ID, P.IS_HAWK_INDEXED, P.HAWK_INDEXED_DATE, P.STATUS_ID, P.PRODUCT_TYPE_ID, P.DOMAIN_PARTY_ID, P.PRIMARY_PRODUCT_CATEGORY_ID, P.LAST_MODIFIED_DATE, P.PRODUCT_UPDATE_DATE, P.PART_NUMBER, P.AAIA_BRAND_ID, P.AAIA_SUB_BRAND_ID, P.NATIONAL_POPULARITY_CODE, P.STD_PART_NUMBER, PCA.ATTR_NAME, PCA.ATTR_VALUE, PCA.PRODUCT_CATEGORY_ID FROM PRODUCT P LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCA ON P.AAIA_BRAND_ID = PCA.PRODUCT_CATEGORY_ID LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCAS ON P.AAIA_SUB_BRAND_ID = PCAS.PRODUCT_CATEGORY_ID WHERE (((((PCAS.ATTR_NAME = 'HAWKSEARCH_ENABLED' OR PCA.ATTR_NAME = 'HAWKSEARCH_ENABLED') AND (PCAS.ATTR_VALUE = 'Y' OR PCA.ATTR_VALUE = 'Y') AND P.ALLIANCE_PRODUCT_ID IS NOT NULL AND P.DOMAIN_PARTY_ID = 'AAPA')))) ORDER BY P.PRODUCT_ID ASC, PCA.ATTR_NAME ASC, PCA.PRODUCT_CATEGORY_ID ASC) AS Products WHERE (((last_modified_date > "+ (new Date(lastFeedTimestamp.getTime())) +") OR (product_update_date > "+ (new Date(lastFeedTimestamp.getTime())) +")) AND ((((status_id IS NOT NULL) OR  (status_id != 'PRODUCT_STS_7')  OR (status_id != 'PRODUCT_STS_8') OR (status_id != 'PRODUCT_STS_9')) OR (is_hawk_indexed = 'Y')) AND ((product_type_id = 'FINISHED_GOOD') AND (domain_party_id = 'AAPA') AND (primary_product_category_id IS NOT NULL)))) AND ((sales_discontinuation_date IS NULL) OR (sales_discontinuation_date >= "+(new Date(new Timestamp(System.currentTimeMillis()).getTime()))+")) ORDER BY Products.aaia_brand_id LIMIT 1000;");
-		}else {  //1235
-			
-			productFeatureAndAppls = queryData("SELECT * FROM (SELECT P.PRODUCT_ID, P.SALES_DISCONTINUATION_DATE, P.ALLIANCE_PRODUCT_ID, P.IS_HAWK_INDEXED, P.HAWK_INDEXED_DATE, P.STATUS_ID, P.PRODUCT_TYPE_ID, P.DOMAIN_PARTY_ID, P.PRIMARY_PRODUCT_CATEGORY_ID, P.LAST_MODIFIED_DATE, P.PRODUCT_UPDATE_DATE, P.PART_NUMBER, P.AAIA_BRAND_ID, P.AAIA_SUB_BRAND_ID, P.NATIONAL_POPULARITY_CODE, P.STD_PART_NUMBER, PCA.ATTR_NAME, PCA.ATTR_VALUE, PCA.PRODUCT_CATEGORY_ID FROM PRODUCT P LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCA ON P.AAIA_BRAND_ID = PCA.PRODUCT_CATEGORY_ID LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCAS ON P.AAIA_SUB_BRAND_ID = PCAS.PRODUCT_CATEGORY_ID WHERE (((((PCAS.ATTR_NAME = 'HAWKSEARCH_ENABLED' OR PCA.ATTR_NAME = 'HAWKSEARCH_ENABLED') AND (PCAS.ATTR_VALUE = 'Y' OR PCA.ATTR_VALUE = 'Y') AND P.ALLIANCE_PRODUCT_ID IS NOT NULL AND P.DOMAIN_PARTY_ID = 'AAPA')))) ORDER BY P.PRODUCT_ID ASC, PCA.ATTR_NAME ASC, PCA.PRODUCT_CATEGORY_ID ASC) AS Products WHERE ((((status_id IS NOT NULL) OR  (status_id != 'PRODUCT_STS_7')  OR (status_id != 'PRODUCT_STS_8') OR (status_id != 'PRODUCT_STS_9')) OR (is_hawk_indexed = 'Y')) AND ((product_type_id = 'FINISHED_GOOD') AND (domain_party_id = 'AAPA') AND (primary_product_category_id IS NOT NULL))) AND ((sales_discontinuation_date IS NULL) OR (sales_discontinuation_date >= "+(new Date(new Timestamp(System.currentTimeMillis()).getTime()))+")) ORDER BY Products.aaia_brand_id LIMIT 1000;");
-		}
+            connectToDB2();
+            connectToDB();
+            int count = 0;
+            if(includeProducts.equals("N")) {  //equal to 'N' && not empty  12345
+                productFeatureAndAppls = queryData1("SELECT * FROM (SELECT P.PRODUCT_ID, P.SALES_DISCONTINUATION_DATE, P.ALLIANCE_PRODUCT_ID, P.IS_HAWK_INDEXED, P.HAWK_INDEXED_DATE, P.STATUS_ID, P.PRODUCT_TYPE_ID, P.DOMAIN_PARTY_ID, P.PRIMARY_PRODUCT_CATEGORY_ID, P.LAST_MODIFIED_DATE, P.PRODUCT_UPDATE_DATE, P.PART_NUMBER, P.AAIA_BRAND_ID, P.AAIA_SUB_BRAND_ID, P.NATIONAL_POPULARITY_CODE, P.STD_PART_NUMBER, PCA.ATTR_NAME, PCA.ATTR_VALUE, PCA.PRODUCT_CATEGORY_ID FROM PRODUCT P LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCA ON P.AAIA_BRAND_ID = PCA.PRODUCT_CATEGORY_ID LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCAS ON P.AAIA_SUB_BRAND_ID = PCAS.PRODUCT_CATEGORY_ID WHERE (((((PCAS.ATTR_NAME = 'HAWKSEARCH_ENABLED' OR PCA.ATTR_NAME = 'HAWKSEARCH_ENABLED') AND (PCAS.ATTR_VALUE = 'Y' OR PCA.ATTR_VALUE = 'Y') AND P.ALLIANCE_PRODUCT_ID IS NOT NULL AND P.DOMAIN_PARTY_ID = 'AAPA')))) ORDER BY P.PRODUCT_ID ASC, PCA.ATTR_NAME ASC, PCA.PRODUCT_CATEGORY_ID ASC) AS Products WHERE (((last_modified_date > "+ (new Date(lastFeedTimestamp.getTime())) +") OR (product_update_date > "+ (new Date(lastFeedTimestamp.getTime())) +")) AND ((((status_id IS NOT NULL) OR  (status_id != 'PRODUCT_STS_7')  OR (status_id != 'PRODUCT_STS_8') OR (status_id != 'PRODUCT_STS_9')) OR (is_hawk_indexed = 'Y')) AND ((product_type_id = 'FINISHED_GOOD') AND (domain_party_id = 'AAPA') AND (primary_product_category_id IS NOT NULL)))) AND ((sales_discontinuation_date IS NULL) OR (sales_discontinuation_date >= "+(new Date(new Timestamp(System.currentTimeMillis()).getTime()))+")) ORDER BY Products.aaia_brand_id;");
+            } else {  //1235
+                productFeatureAndAppls = queryData1("SELECT * FROM (SELECT P.PRODUCT_ID, P.SALES_DISCONTINUATION_DATE, P.ALLIANCE_PRODUCT_ID, P.IS_HAWK_INDEXED, P.HAWK_INDEXED_DATE, P.STATUS_ID, P.PRODUCT_TYPE_ID, P.DOMAIN_PARTY_ID, P.PRIMARY_PRODUCT_CATEGORY_ID, P.LAST_MODIFIED_DATE, P.PRODUCT_UPDATE_DATE, P.PART_NUMBER, P.AAIA_BRAND_ID, P.AAIA_SUB_BRAND_ID, P.NATIONAL_POPULARITY_CODE, P.STD_PART_NUMBER, PCA.ATTR_NAME, PCA.ATTR_VALUE, PCA.PRODUCT_CATEGORY_ID FROM PRODUCT P LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCA ON P.AAIA_BRAND_ID = PCA.PRODUCT_CATEGORY_ID LEFT OUTER JOIN PRODUCT_CATEGORY_ATTRIBUTE PCAS ON P.AAIA_SUB_BRAND_ID = PCAS.PRODUCT_CATEGORY_ID WHERE (((((PCAS.ATTR_NAME = 'HAWKSEARCH_ENABLED' OR PCA.ATTR_NAME = 'HAWKSEARCH_ENABLED') AND (PCAS.ATTR_VALUE = 'Y' OR PCA.ATTR_VALUE = 'Y') AND P.ALLIANCE_PRODUCT_ID IS NOT NULL AND P.DOMAIN_PARTY_ID = 'AAPA')))) ORDER BY P.PRODUCT_ID ASC, PCA.ATTR_NAME ASC, PCA.PRODUCT_CATEGORY_ID ASC) AS Products WHERE ((((status_id IS NOT NULL) OR  (status_id != 'PRODUCT_STS_7')  OR (status_id != 'PRODUCT_STS_8') OR (status_id != 'PRODUCT_STS_9')) OR (is_hawk_indexed = 'Y')) AND ((product_type_id = 'FINISHED_GOOD') AND (domain_party_id = 'AAPA') AND (primary_product_category_id IS NOT NULL))) AND ((sales_discontinuation_date IS NULL) OR (sales_discontinuation_date >= "+(new Date(new Timestamp(System.currentTimeMillis()).getTime()))+")) ORDER BY Products.aaia_brand_id;");
+  
+//con2.close();
+          }
 
 
-		//getting result set
-		itemInfoMap = new HashMap<String, Object>();
-		if(productFeatureAndAppls != null) {
-			while(productFeatureAndAppls.next()){
-                dataResourceId = null;
-                textDataProduct = null;
-                terminology = null;
-                brand = null;
-                electronicText = null;
-                textDataMarket = null;
-                zapPrice = null;
-                listPrice = null;
-                jobberPrice = null;
-                quotePrice = null;
-                userPrice = null;
-                wdPrice = null;
+            //getting result set
 
-                 product = null;
-                 subBrand = null;
-                 goodCore = null;
-                 jobberCore=null;
-                 wdCore=null;
 
-                        System.out.println("Part Number | ProductId [" + productFeatureAndAppls.getString("part_number") + " | " + productFeatureAndAppls.getString("product_id") + "]==========count==="+count++);
-                        
-                        productId = productFeatureAndAppls.getString("product_id");
-                        partNumber = productFeatureAndAppls.getString("part_number");
-                    
+PreparedStatement statement1;
+PreparedStatement statement2;
+PreparedStatement statement3;
+PreparedStatement statement4;
+PreparedStatement statement5;
+
+
+            itemInfoMap = new HashMap<String, Object>();
+            if(productFeatureAndAppls != null) {
+                while(productFeatureAndAppls.next()){
+                    dataResourceId = null;
+                    textDataProduct = null;
+                    terminology = null;
+                    brand = null;
+                    electronicText = null;
+                    textDataMarket = null;
+                    zapPrice = null;
+                    listPrice = null;
+                    jobberPrice = null;
+                    quotePrice = null;
+                    userPrice = null;
+                    wdPrice = null;
+
+                     product = null;
+                     subBrand = null;
+                     goodCore = null;
+                     jobberCore=null;
+                     wdCore=null;
+
+                    System.out.println("Part Number | ProductId [" + productFeatureAndAppls.getString("part_number") + " | " + productFeatureAndAppls.getString("product_id") + "]==========count-==="+count++);
+                    productId = productFeatureAndAppls.getString("product_id");
+                    partNumber = productFeatureAndAppls.getString("part_number");
+
                     if(partNumber == null || partNumber.isEmpty()) {
                         System.out.println("Part Number is not found for the product : " + productId);
                         continue;
@@ -140,358 +140,253 @@ static Connection con2;
                         continue;
                     }
 
-
-                    if(!(includeProducts.isEmpty()) && "Y".equals(includeProducts)) {
-                        if(lastFeedTimestamp != null || productFeatureAndAppls.getString("is_hawk_indexed") == null || productFeatureAndAppls.getString("is_hawk_indexed").isEmpty() || "N".equals(productFeatureAndAppls.getString("is_hawk_indexed"))) {
-                            if (!("PRODUCT_STS_7".equals(productFeatureAndAppls.getString("status_id"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppls.getString("status_id"))) ||
-                                            !("PRODUCT_STS_9".equals(productFeatureAndAppls.getString("status_id"))) || productFeatureAndAppls.getString("status_id") == null) {
-                                                itemInfoMap.put("item_operation", "A");
-                                                if(product != null) {
-                                                    //connectToDB();
-                                                    updateQuery("UPDATE product SET is_hawk_indexed='Y', hawk_indexed_date='"+ (new Date(new Timestamp(System.currentTimeMillis()).getTime())) +"' WHERE product_id='"+ productId +"';");
-                                                }
-                                            }else {
-                                                System.out.println("The product is not eligible for Hawk data feed " + productId);
-                                                continue;	
-                                            }
-                        } else {
-                            if(lastFeedTimestamp != null && "Y".equals(productFeatureAndAppls.getString("is_hawk_indexed"))) {
-
-                                if (!("PRODUCT_STS_7".equals(productFeatureAndAppls.getString("status_id"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppls.getString("status_id"))) ||
-                                                !("PRODUCT_STS_9".equals(productFeatureAndAppls.getString("status_id"))) || productFeatureAndAppls.getString("status_id") == null) {
-                                            itemInfoMap.put("item_operation", "U");
-                                        } else {
-                                            itemInfoMap.put("item_operation", "D");
-                                            if (product != null) {
-                                                //connectToDB();
-                                                updateQuery("UPDATE product SET is_hawk_indexed='N', hawk_indexed_date='"+ (new Date(new Timestamp(System.currentTimeMillis()).getTime())) +"' WHERE product_id='"+ productId +"';");
-                                            }
-                                        }
-                            }
-                        }
-                    }else {
-                        if (lastFeedTimestamp != null || productFeatureAndAppls.getString("is_hawk_indexed").isEmpty()
-                                    || "N".equals(productFeatureAndAppls.getString("is_hawk_indexed"))) {
-                                        if (productFeatureAndAppls.getString("status_id") == null || !("PRODUCT_STS_7".equals(productFeatureAndAppls.getString("status_id"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppls.getString("status_id"))) ||
-                                        !("PRODUCT_STS_9".equals(productFeatureAndAppls.getString("status_id")))) {
-                                    itemInfoMap.put("item_operation", "A");
-                                    if (product != null) {	
-                                       // connectToDB();
-                                        updateQuery("UPDATE product SET is_hawk_indexed='Y', hawk_indexed_date='"+ (new Date(new Timestamp(System.currentTimeMillis()).getTime())) +"' WHERE product_id='"+ productId +"';");
-                                    }
-                                } else {
-                                    System.out.println("The product is not eligible for Hawk data feed " + productId);
-                                    continue;
-                                }
-                            } else {
-                                if (lastFeedTimestamp != null && "Y".equals(productFeatureAndAppls.getString("is_hawk_indexed")) && productFeatureAndAppls.getTimestamp("last_modified_date") != null && lastFeedTimestamp.before(productFeatureAndAppls.getTimestamp("last_modified_date")) || productFeatureAndAppls.getTimestamp("product_update_date") != null && lastFeedTimestamp.before(productFeatureAndAppls.getTimestamp("product_update_date"))) {
-                                    if (!("PRODUCT_STS_7".equals(productFeatureAndAppls.getString("status_id"))) || !("PRODUCT_STS_8".equals(productFeatureAndAppls.getString("status_id"))) ||
-                                            !("PRODUCT_STS_9".equals(productFeatureAndAppls.getString("status_id"))) || productFeatureAndAppls.getString("status_id") == null) {
-                                        itemInfoMap.put("item_operation", "U");
-                                    } else {
-                                        itemInfoMap.put("item_operation", "D");
-                                        if (product != null) {
-                                            //connectToDB();
-                                            updateQuery("UPDATE product SET is_hawk_indexed='Y', hawk_indexed_date='"+ (new Date(new Timestamp(System.currentTimeMillis()).getTime())) +"' WHERE product_id='"+ productId +"';");
-                                        }
-                                    }
-                                } else {
-                                    continue;
-                                }
-                                
-                            }
+                    itemInfoMap.put("unique_id", productFeatureAndAppls.getString("alliance_product_id"));
+                    if (productFeatureAndAppls.getString("national_popularity_code") == null || productFeatureAndAppls.getString("national_popularity_code").isEmpty()) {
+                        System.out.println("National Popularity Code is not found for the product : " + productId);
                     }
-                        itemInfoMap.put("unique_id", productFeatureAndAppls.getString("alliance_product_id"));
-                            if (productFeatureAndAppls.getString("national_popularity_code") == null || productFeatureAndAppls.getString("national_popularity_code").isEmpty()) {
-                                System.out.println("National Popularity Code is not found for the product : " + productId);
-                            }
-                            itemInfoMap.put("sort_default", productFeatureAndAppls.getString("national_popularity_code"));
+                    itemInfoMap.put("sort_default", productFeatureAndAppls.getString("national_popularity_code"));
 
-                            //Code to generate terminology name.
-                            name = "";
-                                                        
-                            textDataProduct = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
-                            if(textDataProduct.next()){
+                    //Code to generate terminology name.
+                    name = "";
+
+                    //textDataProduct = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
+                    
+
+        /* 
+        statement1 = con.prepareStatement("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
+        statement1.executeQuery();
+        textDataProduct = statement1.getResultSet();
+        */
+        textDataProduct = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'PRODUCT_NAME' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
+        if(textDataProduct != null && textDataProduct.next()){
                             name = textDataProduct.getString("text_data");
                             }else {
-                                name = "		";
+                                name = "        ";
                             }
                             textDataProduct.close();
+    //statement1.close();	
+                            statement.close();
 
-                            
-                            itemInfoMap.put("name", formatContentForCsv(name)); // providing tab space instead of checking name is empty or not
-                            
-
-                            terminologyName = "";
-                            terminology = queryData("SELECT * FROM product_category WHERE product_category_id="+ productFeatureAndAppls.getString("primary_product_category_id")+" LIMIT 1;");
-                            if (terminology != null && terminology.next() && terminology.getString("description") != null) {
-                                terminologyName = terminology.getString("description");
-                            }
-                            //statement.close();
-                            terminology.close();
-                            
-                            //Code to generate image url.
-                            //Code to send the thumbnail associated with 400 asset width image to hawk.
-                            imageUrl = "HARD_CODED_URL";
-                            
-                            imageUrl = "hard.url";
-                            itemInfoMap.put("image", imageUrl);
-                        
-                            //Code to generate brand code and brand name.
-                            brandName = "";
-                            brandCode = null;
-                            brand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;");
-                            if (brand != null && brand.next()) {
-                                brandName = brand.getString("description");
-                                brandCode = brand.getString("category_name");
-                            }
-                            brand.close();
-                            //Code to generate sub brand code.
-                            subBrandCode = "";
-                            subBrand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;");
-                            if (subBrand != null  && subBrand.next()) {
-                                subBrandCode = subBrand.getString("category_name");
-                            }
-                            
-                            itemInfoMap.put("url_detail", "HARD_CODED_JSON_PRODUCT_INFO");
-                        
-                            //Code to generate short description.
-                            descriptionShort = new StringBuilder(brandName);
-                            if (!(terminologyName.isEmpty())) {
-                                descriptionShort = descriptionShort.append(" ").append(terminologyName);
-                                itemInfoMap.put("description_short", formatContentForCsv(descriptionShort.toString()));
-                            }
-                        
-                            textDataMarket  = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'MARKETING_DESC' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
-                            if(textDataMarket.next()) {
-                            marketDesc = textDataMarket.getString("text_data");
-                            } else {
-                                marketDesc = "		";
-                            }
-                            textDataMarket.close();
+                    itemInfoMap.put("name", formatContentForCsv(name)); // providing tab space instead of checking name is empty or not
 
 
-                            descriptionLong = "";
-                            //Code to generate long description.
-                            if (!(marketDesc.isEmpty())) {
-                                descriptionLong = marketDesc;
-                            }
+                    terminologyName = "";
+                    //terminology = queryData("SELECT * FROM product_category WHERE product_category_id="+ productFeatureAndAppls.getString("primary_product_category_id")+" LIMIT 1;");
+                                    /* 
+                statement2 = con.prepareStatement("SELECT * FROM product_category WHERE product_category_id="+ productFeatureAndAppls.getString("primary_product_category_id")+" LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
+                statement2.executeQuery();
+                terminology = statement2.getResultSet();
+                */
+                terminology = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("primary_product_category_id")+"' LIMIT 1;");
 
-                            //Code to generate the sku.
-                            sku = new StringBuilder();
-                            if (productFeatureAndAppls.getString("std_part_number") != null && !(productFeatureAndAppls.getString("std_part_number").isEmpty())) {
-                                sku = sku.append(productFeatureAndAppls.getString("std_part_number")).append("-");
-                            } else {
-                                sku = sku.append("-");
-                            }
-                            if (brandCode != null && !(brandCode.isEmpty())) {
-                                sku = sku.append(brandCode).append("-");
-                            } else {
-                                sku = sku.append("-");
-                            }
-                            if (!(subBrandCode.isEmpty())) {
-                                sku = sku.append(subBrandCode);
-                            }
+if (terminology != null && terminology.next() && terminology.getString("description") != null) {
+                        terminologyName = terminology.getString("description");
+                    }
+                    
+                    terminology.close();
+                    statement.close();
+        //statement2.close();
 
-                            itemInfoMap.put("sku", sku);
-                        
-                        if (!(descriptionLong.isEmpty())) {
-                                itemInfoMap.put("description_long", formatContentForCsv(descriptionLong.toString()));
-                            }
-                        
-                        // Retail Price
-                            /*retailPrice = BigDecimal.ZERO;
-                            zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') LIMIT 1;");
-                                    if (zapPrice != null && zapPrice.next()) {
-                                retailPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
-                            } else {
-                                listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') LIMIT 1;");
-                                if (listPrice != null && listPrice.next() && listPrice.getBigDecimal("price") != null) {
-                                    retailPrice = listPrice.getBigDecimal("price");
-                                } else {
-                                    jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') LIMIT 1;");
-                                    if (jobberPrice != null && jobberPrice.next() && jobberPrice.getBigDecimal("price") != null) {
-                                        retailPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
-                                    } else {
-                                        quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') LIMIT 1;");
-                                        if (quotePrice != null && quotePrice.next() && quotePrice.getBigDecimal("price") != null) {
-                                            retailPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
-                                        } else {
-                                            userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') LIMIT 1;");
-                                            if (userPrice != null && userPrice.next() && userPrice.getBigDecimal("price") != null) {
-                                                retailPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
-                                            } else {
-                                                wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') LIMIT 1;");
-                                                if (wdPrice != null && wdPrice.next() && wdPrice.getBigDecimal("price") != null) {
-                                                    retailPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
-                                                } else {
-                                                    retailPrice = new BigDecimal(1234.56);
-                                                }
-                                                wdPrice.close();
-                                            }
-                                            userPrice.close();
-                                        }
-                                        quotePrice.close();
-                                    }
-                                    jobberPrice.close();
-                                }
-                                listPrice.close();
-                            }
-                            
-                            itemInfoMap.put("retailPrice", retailPrice);
-                            //statement.close();
-                            zapPrice.close();
+                    //Code to generate image url.
+                    //Code to send the thumbnail associated with 400 asset width image to hawk.
+                    imageUrl = "HARD_CODED_URL";
 
-                            // Price Special Calculation
-                            priceList = new ArrayList<BigDecimal>();
-                            goodCore = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='CRG')  LIMIT 1;");
+                    imageUrl = "hard.url";
+                    itemInfoMap.put("image", imageUrl);
 
-                            if (goodCore != null && goodCore.next()){
-                                priceList.add(goodCore.getBigDecimal("price"));
-                            }
+                    //Code to generate brand code and brand name.
+                    brandName = "";
+                    brandCode = null;
+        /* 
+        statement3 = con.prepareStatement("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
+        statement3.executeQuery();
+        brand = statement3.getResultSet();
+        */
+                    //brand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;");
 
-                            // Jobber Core
+                    brand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_brand_id") +"' LIMIT 1;");
 
-                            jobberCore = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='CRJ') LIMIT 1;");
-                            if (jobberCore != null && jobberCore.next()){
-                                priceList.add(jobberCore.getBigDecimal("price"));
-                            }
 
-                            // Wd Core
-                            wdCore = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='CRW') LIMIT 1;");
-                            if (wdCore != null && wdCore.next()){
-                                priceList.add(wdCore.getBigDecimal("price"));
-                            }
+                    if (brand != null && brand.next()) {
+                        brandName = brand.getString("description");
+                        brandCode = brand.getString("category_name");
+                    }
+                    brand.close();
+                    statement.close();
+        //statement3.close();
+                    //Code to generate sub brand code.
+                    subBrandCode = "";
+                    //subBrand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;");
+        /* 
+        statement4 = con.prepareStatement("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
+        statement4.executeQuery();
+        subBrand = statement4.getResultSet();
+        */
+                    subBrand = queryData("SELECT * FROM product_category WHERE product_category_id='"+ productFeatureAndAppls.getString("aaia_sub_brand_id") +"' LIMIT 1;");                   
 
-                            // Maximum value for the above calculated prices.
-                            if (priceList.size() != 0) {
-                                itemInfoMap.put("priceSpecial", Collections.max(priceList));
-                            }*/
+                    if (subBrand != null  && subBrand.next()) {
+                        subBrandCode = subBrand.getString("category_name");
+                    }
+            subBrand.close();
+            statement.close();
+        //statement4.close();
 
-                            bufferWrite.write(itemInfoMap.get("unique_id")+"	"+itemInfoMap.get("name")+ "	"+itemInfoMap.get("url_detail")+"	"+itemInfoMap.get("image")+"	" + itemInfoMap.get("retailPrice") + "	" + itemInfoMap.get("price_sale") +"	"+ itemInfoMap.get("priceSpecial") +"	"+  itemInfoMap.get("group_id") +"	"+ itemInfoMap.get("description_short") +"	"+ itemInfoMap.get("description_long") +"	"+ itemInfoMap.get("sku") +"	"+ itemInfoMap.get("sort_default") +"	"+ itemInfoMap.get("sort_rating") +"	"+ itemInfoMap.get("item_operation")+"\n");
-                            itemInfoMap.clear();
-                            productId = null;
-                            partNumber = null;
-                            partNumber = null;
-                            dataResourceId = null;
-                            textDataProduct = null;
-                            terminology = null;
-                            brand = null;
-                            electronicText = null;
-                            textDataMarket = null;
-                            zapPrice = null;
-                            listPrice = null;
-                            jobberPrice = null;
-                            quotePrice = null;
-                            userPrice = null;
-                            wdPrice = null;
+                    itemInfoMap.put("url_detail", "HARD_CODED_JSON_PRODUCT_INFO");
 
-                            product = null;
-                            subBrand = null;
-                            goodCore = null;
-                            jobberCore=null;
-                            wdCore=null;
+                    //Code to generate short description.
+                    descriptionShort = new StringBuilder(brandName);
+                    if (!(terminologyName.isEmpty())) {
+                        descriptionShort = descriptionShort.append(" ").append(terminologyName);
+                        itemInfoMap.put("description_short", formatContentForCsv(descriptionShort.toString()));
+                    }
 
-				}  // end while
+                    textDataMarket  = queryData("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'MARKETING_DESC' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;");
+                /* 
+                statement5 = con.prepareStatement("SELECT PC.PURCHASE_FROM_DATE, PC.PURCHASE_THRU_DATE, PC.USE_TIME_UOM_ID, PC.THRU_DATE, PC.USE_ROLE_TYPE_ID, PC.MODIFIED_DATE, PC.CONTENT_ID, PC.PRODUCT_ID, PC.SEQUENCE_NUM, PC.FROM_DATE, PC.USE_COUNT_LIMIT, PC.PRODUCT_CONTENT_TYPE_ID, PC.USE_TIME, CO.CHILD_LEAF_COUNT, CO.OWNER_CONTENT_ID, CO.INSTANCE_OF_CONTENT_ID, CO.DATA_RESOURCE_ID, CO.DATA_SOURCE_ID, CO.SERVICE_NAME, CO.CUSTOM_METHOD_ID, CO.STATUS_ID, CO.CHILD_BRANCH_COUNT, CO.PRIVILEGE_ENUM_ID, CO.TEMPLATE_DATA_RESOURCE_ID, CO.DESCRIPTION, CO.DECORATOR_CONTENT_ID, CO.CREATED_DATE, CO.MIME_TYPE_ID, CO.CONTENT_NAME, CO.CHARACTER_SET_ID, CO.LOCALE_STRING, CO.LAST_MODIFIED_BY_USER_LOGIN, CO.CONTENT_TYPE_ID, CO.LAST_MODIFIED_DATE, CO.CREATED_BY_USER_LOGIN, ET.TEXT_DATA, DR.DATA_RESOURCE_NAME, DR.DATA_TEMPLATE_TYPE_ID, DR.MIME_TYPE_ID, DR.IS_PUBLIC, DR.RELATED_DETAIL_ID, DR.DATA_RESOURCE_ID, DR.DATA_SOURCE_ID, DR.DATA_CATEGORY_ID, DR.STATUS_ID, DR.CHARACTER_SET_ID, DR.OBJECT_INFO, DR.LAST_MODIFIED_BY_USER_LOGIN, DR.LOCALE_STRING, DR.DATA_RESOURCE_TYPE_ID, DR.SURVEY_RESPONSE_ID, DR.LAST_MODIFIED_DATE, DR.SURVEY_ID, DR.CREATED_DATE, DR.CREATED_BY_USER_LOGIN FROM PRODUCT_CONTENT PC INNER JOIN CONTENT CO ON PC.CONTENT_ID = CO.CONTENT_ID INNER JOIN DATA_RESOURCE DR ON CO.DATA_RESOURCE_ID = DR.DATA_RESOURCE_ID INNER JOIN ELECTRONIC_TEXT ET ON DR.DATA_RESOURCE_ID = ET.DATA_RESOURCE_ID WHERE ((PC.PRODUCT_CONTENT_TYPE_ID = 'MARKETING_DESC' AND PC.PRODUCT_ID = '"+ productId +"')) ORDER BY PC.CONTENT_ID ASC, PC.PRODUCT_ID ASC, PC.FROM_DATE ASC, PC.PRODUCT_CONTENT_TYPE_ID ASC, DR.DATA_RESOURCE_ID ASC LIMIT 1;", java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
+                statement5.executeQuery();
+                textDataMarket = statement5.getResultSet();
+         */
 
-				
-				bufferWrite.close();
+                    if(textDataMarket.next()) {
+                    marketDesc = textDataMarket.getString("text_data");
+                    } else {
+                        marketDesc = "        ";
+                    }
+                    textDataMarket.close();
+    //statement5.close();
+                        statement.close();
+
+                    descriptionLong = "";
+                    //Code to generate long description.
+                    if (!(marketDesc.isEmpty())) {
+                        descriptionLong = marketDesc;
+                    }
+
+                    //Code to generate the sku.
+                    sku = new StringBuilder();
+                    if (productFeatureAndAppls.getString("std_part_number") != null && !(productFeatureAndAppls.getString("std_part_number").isEmpty())) {
+                        sku = sku.append(productFeatureAndAppls.getString("std_part_number")).append("-");
+                    } else {
+                        sku = sku.append("-");
+                    }
+                    if (brandCode != null && !(brandCode.isEmpty())) {
+                        sku = sku.append(brandCode).append("-");
+                    } else {
+                        sku = sku.append("-");
+                    }
+                    if (!(subBrandCode.isEmpty())) {
+                        sku = sku.append(subBrandCode);
+                    }
+
+                    itemInfoMap.put("sku", sku);
+
+                    if (!(descriptionLong.isEmpty())) {
+                        itemInfoMap.put("description_long", formatContentForCsv(descriptionLong.toString()));
+                    }
+
+                    bufferWrite.write(itemInfoMap.get("unique_id")+"    "+itemInfoMap.get("name")+ "    "+itemInfoMap.get("url_detail")+"    "+itemInfoMap.get("image")+"    " + itemInfoMap.get("retailPrice") + "    " + itemInfoMap.get("price_sale") +"    "+ itemInfoMap.get("priceSpecial") +"    "+  itemInfoMap.get("group_id") +"    "+ itemInfoMap.get("description_short") +"    "+ itemInfoMap.get("description_long") +"    "+ itemInfoMap.get("sku") +"    "+ itemInfoMap.get("sort_default") +"    "+ itemInfoMap.get("sort_rating") +"    "+ itemInfoMap.get("item_operation")+"\n");
+                    itemInfoMap.clear();
+             
+                    statement.close();
+                }  // end while
+                bufferWrite.close();
                 productFeatureAndAppls.close();
-		} else {
+            } else {
                 System.out.println("Unable to generate the data feed. No Product(s) in the system have Alliance Product ID set.");
             }
-        statement.close();
-		con.close();
-con2.close();		  
-			createZip(zipName, fileName);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
+            con.close();
+            con2.close();
+            createZip(zipName, fileName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 }
 
-		
-		public static void connectToDB() {
-			try{
-			//connective to mysql server
-			Class.forName("com.mysql.jdbc.Driver");
-			con=DriverManager.getConnection(  
-			"jdbc:mysql://172.20.20.128/"+ DB_NAME +"?autoReconnect=true","root","123456");  
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+        
+        public static void connectToDB() {
+            try{
+                //Connection 1 to mysql server used for main SQL Stream mode
+                Class.forName("com.mysql.jdbc.Driver");
+                con=DriverManager.getConnection(
+                "jdbc:mysql://172.20.20.128/"+ DB_NAME +"?autoReconnect=true","root","123456");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-public static void connectToDB2() {
-			try{
-			//connective to mysql server
-			Class.forName("com.mysql.jdbc.Driver");
-			con2=DriverManager.getConnection(  
-			"jdbc:mysql://172.20.20.128/"+ DB_NAME +"?autoReconnect=true","root","123456");  
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+        public static void connectToDB2() {
+            try{
+                //Connection 2 to mysql server used for Inner SQL
+                Class.forName("com.mysql.jdbc.Driver");
+                con2=DriverManager.getConnection(
+                "jdbc:mysql://172.20.20.128/"+ DB_NAME +"?autoReconnect=true","root","123456");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         
-		public static ResultSet queryData(String query) {
-			try {
-			statement = con.prepareStatement(query);
-			//statement.setFetchSize(Integer.MIN_VALUE); 
-			statement.executeQuery();
-			return statement.getResultSet();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			return null;
+	// For INNER Query 
+        public static ResultSet queryData(String query) {
+            try {
+ 		statement = con.prepareStatement(query, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY); 
+                //statement.setFetchSize(Integer.MIN_VALUE);
+                statement.executeQuery();
+                return statement.getResultSet();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
 
-public static ResultSet queryData1(String query) {
-			try {
-			statement = con2.prepareStatement(query);
-			//statement.setFetchSize(Integer.MIN_VALUE); 
-			statement.executeQuery();
-			return statement.getResultSet();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			return null;
+            
+	// For main Query in streaming mode
+	public static ResultSet queryData1(String query) {
+            try {
+		statement = con2.prepareStatement(query, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
+                statement.setFetchSize(Integer.MIN_VALUE);
+                statement.executeQuery();
+                return statement.getResultSet();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
         
-		public static void updateQuery(String query) {
-			try {
-				st = con.prepareStatement(query);
-				//st.executeUpdate();
-				st.close();
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
+        public static void updateQuery(String query) {
+            try {
+                PreparedStatement st = con.prepareStatement(query);
+                //st.executeUpdate();
+                st.close();
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
 
-		public static void createZip(String zip, String file) {
-		try {
-			File fs = new File(zip + ".zip");
-			FileOutputStream fos = new FileOutputStream(fs);
-			ZipOutputStream zos = new ZipOutputStream(fos);
-			int i = 0;
-			
-				ZipEntry zipEntry = new ZipEntry(file + ".txt");
-				zos.putNextEntry(zipEntry);
-				i++;
-			
-			zos.close();
-			fos.close();
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-		}
+        public static void createZip(String zip, String file) {
+            try {
+                File fs = new File(zip + ".zip");
+                FileOutputStream fos = new FileOutputStream(fs);
+                ZipOutputStream zos = new ZipOutputStream(fos);
+                int i = 0;
 
-		private static String formatContentForCsv(String description) {
-			if (description.contains("\"")) {
-				description = description.replace("\"", "\"\"");
-				}
-				csvFormattedString = new StringBuilder();
-				csvFormattedString.insert(0, "\"");
-				csvFormattedString.append(description);
-				csvFormattedString.append("\"");
-					return csvFormattedString.toString();
-			}
-}
+                    ZipEntry zipEntry = new ZipEntry(file + ".txt");
+                    zos.putNextEntry(zipEntry);
+                    i++;
+
+                zos.close();
+                fos.close();
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        private static String formatContentForCsv(String description) {
+            if (description.contains("\"")) {
+                description = description.replace("\"", "\"\"");
+                }
+                StringBuilder csvFormattedString = new StringBuilder();
+                csvFormattedString.insert(0, "\"");
+                csvFormattedString.append(description);
+                csvFormattedString.append("\"");
+                    return csvFormattedString.toString();
+            }
+	}
