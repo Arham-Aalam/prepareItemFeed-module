@@ -31,12 +31,6 @@ public class PrepareItemsDataFeed {
     static final String DB_NAME = "aapa";
     static final String TABLE_NAME = "product";
     static PreparedStatement statement;
-    static ResultSet zapPrice = null;
-    static ResultSet listPrice = null;
-    static ResultSet jobberPrice = null;
-    static ResultSet quotePrice = null;
-    static ResultSet userPrice = null;
-    static ResultSet wdPrice = null;
 
     public static void main(String[] arg) {
 
@@ -53,6 +47,12 @@ public class PrepareItemsDataFeed {
     ResultSet brand = null;
     ResultSet electronicText = null;
     ResultSet textDataMarket = null;
+    ResultSet zapPrice = null;
+    ResultSet listPrice = null;
+    ResultSet jobberPrice = null;
+    ResultSet quotePrice = null;
+    ResultSet userPrice = null;
+    ResultSet wdPrice = null;
     Map<String, Object> itemInfoMap = null;
     List<BigDecimal> priceList;
     BigDecimal retailPrice;
@@ -360,27 +360,27 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                 BigDecimal rPrice = BigDecimal.ZERO;
                 try{
                 // Retail Price
-					zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+					ResultSet zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 							if (zapPrice != null && zapPrice.next()) {
                         rPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
 					} else {
-                        listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+                        ResultSet listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 						if (listPrice != null && listPrice.next() && listPrice.getBigDecimal("price") != null) {
                             rPrice = listPrice.getBigDecimal("price");
                         } else {
-                            jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+                            ResultSet jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 							if (jobberPrice != null && jobberPrice.next() && jobberPrice.getBigDecimal("price") != null) {
                                 rPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
                             } else {
-                                quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+                                ResultSet quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 								if (quotePrice != null && quotePrice.next() && quotePrice.getBigDecimal("price") != null) {
                                     rPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
                                 } else {
-                                    userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+                                    ResultSet userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 									if (userPrice != null && userPrice.next() && userPrice.getBigDecimal("price") != null) {
                                         rPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
                                     } else {
-                                        wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+                                        ResultSet wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 										if (wdPrice != null && wdPrice.next() && wdPrice.getBigDecimal("price") != null) {
                                             rPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
                                         } else {
