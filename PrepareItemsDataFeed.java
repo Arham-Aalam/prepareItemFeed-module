@@ -246,118 +246,51 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     //retailPrice = getPrice(productId);
                     
                     // Retail Price
-                    /* 
+                    rPrice = BigDecimal.ZERO;
+                     
                     zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
 							if (zapPrice != null && zapPrice.next()) {
                         rPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
                                 zapPrice.close();
-                                System.out.println("--------1--------");
                     } else {
-                        System.out.println("--------2--------");
                          listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-						if (listPrice != null && listPrice.next() && listPrice.getBigDecimal("price") != null) {
+						if (listPrice != null && listPrice.next() && (rPrice == null || rPrice.equals(BigDecimal.ZERO))) {
                             rPrice = listPrice.getBigDecimal("price");
                             listPrice.close();
-                            System.out.println("--------2-1------");
+                            statement.close();
                         } else {
-                            System.out.println("--------2-2------");
                              jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-							if (jobberPrice != null && jobberPrice.next() && jobberPrice.getBigDecimal("price") != null) {
+							if (jobberPrice != null && jobberPrice.next() && (rPrice == null || rPrice.equals(BigDecimal.ZERO))) {
                                 rPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
                                 jobberPrice.close();
-                                System.out.println("--------2-2-1----");
+                                statement.close();
                             } else {
-                                System.out.println("--------2-2-2----");
                                  quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-								if (quotePrice != null && quotePrice.next() && quotePrice.getBigDecimal("price") != null) {
+								if (quotePrice != null && quotePrice.next() && (rPrice == null || rPrice.equals(BigDecimal.ZERO))) {
                                     rPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
                                     quotePrice.close();
-                                   System.out.println("--------2-2-2-1--");
+                                    statement.close();
                                 } else {
-                                    System.out.println("--------2-2-2-2--");
                                      userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-									if (userPrice != null && userPrice.next() && userPrice.getBigDecimal("price") != null) {
+									if (userPrice != null && userPrice.next() && (rPrice == null || rPrice.equals(BigDecimal.ZERO))) {
                                         rPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
                                         userPrice.close();
-                                        System.out.println("--------2-2-2-2-1----");
+                                        statement.close();
                                     } else {
-                                        System.out.println("--------2-2-2-2-2----");
                                          wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-										if (wdPrice != null && wdPrice.next() && wdPrice.getBigDecimal("price") != null) {
+										if (wdPrice != null && wdPrice.next() && (rPrice == null || rPrice.equals(BigDecimal.ZERO))) {
                                             rPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
                                             wdPrice.close();
-                                            System.out.println("--------2-2-2-2-2-1--");
+                                            statement.close();
                                         } else {
                                             rPrice = new BigDecimal(1234.56);
-                                            System.out.println("--------2-2-2-2-2-2--");
                                         }	
-                                        statement.close();
                                     }
-                                    statement.close();
 								}
-								statement.close();
                             }
-                            statement.close();
                         }
-                        statement.close();
                     }
                     statement.close();
-                     */
-                    rPrice = BigDecimal.ZERO;
-                    zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-							if (zapPrice != null && zapPrice.next()) {
-                        rPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
-                                zapPrice.close();
-                    }
-                    statement.close();
-                    if(rPrice.equals(BigDecimal.ZERO)){
-                    listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-                                            if (listPrice != null && listPrice.next() && listPrice.getBigDecimal("price") != null) {
-                                                rPrice = listPrice.getBigDecimal("price");
-                                                listPrice.close();
-                                            }
-                                            statement.close();
-                    }
-
-                    if(rPrice.equals(BigDecimal.ZERO)){
-                    jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-                                                if (jobberPrice != null && jobberPrice.next() && jobberPrice.getBigDecimal("price") != null) {
-                                                    rPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
-                                                    jobberPrice.close();
-                                                }
-                                                statement.close();
-                    }
-
-                    if(rPrice.equals(BigDecimal.ZERO)){
-                    quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-                                                    if (quotePrice != null && quotePrice.next() && quotePrice.getBigDecimal("price") != null) {
-                                                        rPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
-                                                        quotePrice.close();
-                                                    }
-                                                    statement.close();
-                    }
-
-                    if(rPrice.equals(BigDecimal.ZERO)){
-                    userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-                                                        if (userPrice != null && userPrice.next() && userPrice.getBigDecimal("price") != null) {
-                                                            rPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
-                                                            userPrice.close();
-                                                        }
-                                                        statement.close();
-                    }
-
-                    if(rPrice.equals(BigDecimal.ZERO)){
-                    wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
-                                                            if (wdPrice != null && wdPrice.next() && wdPrice.getBigDecimal("price") != null) {
-                                                                rPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
-                                                                wdPrice.close();
-                                                            }
-                                                            statement.close();
-                    }
-
-                    if(rPrice.equals(BigDecimal.ZERO)){
-                    rPrice = new BigDecimal(1234.56);                                       
-                    }
 
 
                     itemInfoMap.put("retailPrice", rPrice);
