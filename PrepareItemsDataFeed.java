@@ -51,12 +51,15 @@ public class PrepareItemsDataFeed {
     ResultSet quotePrice = null;
     ResultSet userPrice = null;
     ResultSet wdPrice = null;
+    ResultSet listPrice = null;
+    ResultSet zapPrice = null;
     Map<String, Object> itemInfoMap = null;
     List<BigDecimal> priceList;
     BigDecimal retailPrice;
     Timestamp nowTimestamp;
     Timestamp lastFeedTimestamp;
 
+    BigDecimal rPrice = BigDecimal.ZERO;
 
     String includeProducts = "N";  // Also test for Y
         
@@ -108,7 +111,8 @@ public class PrepareItemsDataFeed {
                     quotePrice = null;
                     userPrice = null;
                     wdPrice = null;
-
+                    listPrice = null;
+                    zapPrice = null;
                      product = null;
                      subBrand = null;
                      goodCore = null;
@@ -239,8 +243,55 @@ if (terminology != null && terminology.next() && terminology.getString("descript
                     }
 
                     // Generate Retail price
-                    retailPrice = getPrice(productId);
-                    itemInfoMap.put("retailPrice", retailPrice);
+                    //retailPrice = getPrice(productId);
+                    
+                    // Retail Price
+					 zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+							if (zapPrice != null && zapPrice.next()) {
+                        rPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
+                                zapPrice.close();
+                    } else {
+                         listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+						if (listPrice != null && listPrice.next() && listPrice.getBigDecimal("price") != null) {
+                            rPrice = listPrice.getBigDecimal("price");
+                            listPrice.close();
+                        } else {
+                             jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+							if (jobberPrice != null && jobberPrice.next() && jobberPrice.getBigDecimal("price") != null) {
+                                rPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
+                                jobberPrice.close();
+                            } else {
+                                 quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+								if (quotePrice != null && quotePrice.next() && quotePrice.getBigDecimal("price") != null) {
+                                    rPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                    quotePrice.close();
+                                   
+                                } else {
+                                     userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+									if (userPrice != null && userPrice.next() && userPrice.getBigDecimal("price") != null) {
+                                        rPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                        userPrice.close();
+                                    } else {
+                                         wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+										if (wdPrice != null && wdPrice.next() && wdPrice.getBigDecimal("price") != null) {
+                                            rPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                            wdPrice.close();
+                                        } else {
+                                            rPrice = new BigDecimal(1234.56);
+                                        }	
+                                        statement.close();
+                                    }
+                                    statement.close();
+								}
+								statement.close();
+                            }
+                            statement.close();
+                        }
+                        statement.close();
+                    }
+                    statement.close();
+                    
+                    itemInfoMap.put("retailPrice", rPrice);
 
                     bufferWrite.write(itemInfoMap.get("unique_id")+"    "+itemInfoMap.get("name")+ "    "+itemInfoMap.get("url_detail")+"    "+itemInfoMap.get("image")+"    " + itemInfoMap.get("retailPrice")+ "    " + itemInfoMap.get("price_sale")+"    "+ itemInfoMap.get("priceSpecial")+"    "+  itemInfoMap.get("group_id")+"    "+ itemInfoMap.get("description_short")+"    "+ itemInfoMap.get("description_long")+"    "+ itemInfoMap.get("sku")+"    "+ itemInfoMap.get("sort_default")+"    "+ itemInfoMap.get("sort_rating") +"    "+ itemInfoMap.get("item_operation") +"\n");
                     itemInfoMap.clear();
