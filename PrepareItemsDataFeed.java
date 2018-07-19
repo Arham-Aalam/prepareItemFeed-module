@@ -1,5 +1,6 @@
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.*;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
@@ -336,8 +337,8 @@ if (terminology != null && terminology.next() && terminology.getString("descript
             } else {
                 System.out.println("Unable to generate the data feed. No Product(s) in the system have Alliance Product ID set.");
             }
-            con.close();
-            con2.close();
+            //con.close();
+            //con2.close();
             createZip(zipName, fileName);
         } catch (Exception e) {
             e.printStackTrace();
@@ -492,4 +493,127 @@ if (terminology != null && terminology.next() && terminology.getString("descript
             }
             return rPrice;
         }
+
+        public static void prepareDistributorDateFeed() {
+            
+            ResultSet productFeatureAndAppls = null;
+            ResultSet globalProductWarranties = null;
+            try {
+                /** 
+                 * need to add file writer if needed
+                 */
+            //1 2    SELECT * FROM - WHERE (status_id != 'PRODUCT_STS_7' OR status_id != 'PRODUCT_STS_8' OR status_id != 'PRODUCT_STS_9' OR status_id IS NULL) AND (product_type_id = 'FINISHED_GOOD' AND domain_party_id = 'AAPA' AND primary_product_category_id IS NOT NULL)
+                if("N".equals(includeAllProducts) && includeAllProducts != null) {
+                productFeatureAndAppls =  queryData1("SELECT * FROM hawk_configured_products WHERE  (((status_id != 'PRODUCT_STS_7' OR status_id != 'PRODUCT_STS_8' OR status_id != 'PRODUCT_STS_9' OR status_id IS NULL) AND (product_type_id = 'FINISHED_GOOD' AND domain_party_id = 'AAPA' AND primary_product_category_id IS NOT NULL)) AND (last_modified_date > '"+ lastFeedTimestamp +"' OR product_update_date > '"+ lastFeedTimestamp +"')) AND (sales_discontinuation_date IS NULL OR sales_discontinuation_date >= '"+ nowTimestamp +"');");
+                } else {
+                productFeatureAndAppls =  queryData1("SELECT * FROM hawk_configured_products WHERE  ((status_id != 'PRODUCT_STS_7' OR status_id != 'PRODUCT_STS_8' OR status_id != 'PRODUCT_STS_9' OR status_id IS NULL) AND (product_type_id = 'FINISHED_GOOD' AND domain_party_id = 'AAPA' AND primary_product_category_id IS NOT NULL)) AND (sales_discontinuation_date IS NULL OR sales_discontinuation_date >= '"+ nowTimestamp +"');");
+                }
+            statement.close();
+
+            if(productFeatureAndAppls != null) {
+                Map<String, Object> distributorProductsInfoMap = null;
+
+                /**
+                 * need to do query for domainPartyIds
+                 */
+
+                 while(productFeatureAndAppls.next()) {
+                    globalProductWarranties = null;
+
+                        System.out.println("Part Number | ProductId [" + productFeatureAndAppls.getString("part_number") + " | " + productFeatureAndAppls.getString("product_id") + "]", module);
+                        String globalProductId =  productFeatureAndAppl.getString("product_id");
+                        String description = productFeatureAndAppl.getString("alliance_product_id");
+
+                        if(description == null || "".equals(description)) {
+                            System.out.println("Alliance Product ID is not found for the product : " + globalProductId);
+                            continue;
+                        }
+
+                        if("N".equals(includeAllProducts) && includeAllProducts != null) {
+                            if(productFeatureAndAppl.getString("is_hawk_indexed") != null && "Y".equals(productFeatureAndAppl.getString("is_hawk_indexed"))) {
+                                if(lastFeedTimestamp != null && productFeatureAndAppl.getTimestamp("last_modified_date") != null && lastFeedTimestamp.after(productFeatureAndAppl.getTimestamp("last_modified_date"))) {
+                                    System.out.println("The product info is already sent in the earlier feed : " + globalProductId);
+                                    continue;
+                                }
+                            }
+                        } else {
+                            //Debug.logInfo("Include all products set as Y", module);
+                        }
+
+                        // Get warranty information
+                        String globalProductWarrantyInfo = null;
+                        globalProductWarranties = queryData("SELECT * FROM product_feature_and_appl WHERE product_id = '"+ globalProductId +"' AND product_feature_type_id IN ('WARRANTY_DISTANCE', 'WARRANTY_SPECIAL', 'WARRANTY_TIME');");
+                        int cnt = 0;
+                        while(globalProductWarranties.next()) {
+                            cnt++;
+                            globalProductWarrantyInfo = globalProductWarranties.getString("description"); 
+                        }
+
+                    } // end of while
+            }
+
+        } catch(SQLException ex) {
+            ex.printStackTrace();
+        } catch(IOException ex) {
+            ex.printStackTrace();
+        }
+
+        }
 	}
+
+    /*
+zapPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='ZAP') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+							if (zapPrice != null && zapPrice.next()) {
+                        rPrice = zapPrice.getBigDecimal("price").multiply(new BigDecimal(2.5));
+                                zapPrice.close();
+                    }
+                    statement.close();
+if(rPrice.equals(BigDecimal.ZERO)){
+listPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='LIST_PRICE') AND (price_code='LST') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+						if (listPrice != null && listPrice.next() && listPrice.getBigDecimal("price") != null) {
+                            rPrice = listPrice.getBigDecimal("price");
+                            listPrice.close();
+                        }
+                        statement.close();
+}
+
+if(rPrice.equals(BigDecimal.ZERO)){
+jobberPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='JOBBER_PRICE') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+							if (jobberPrice != null && jobberPrice.next() && jobberPrice.getBigDecimal("price") != null) {
+                                rPrice = jobberPrice.getBigDecimal("price").multiply(new BigDecimal(2));
+                                jobberPrice.close();
+                            }
+                            statement.close();
+}
+
+if(rPrice.equals(BigDecimal.ZERO)){
+ quotePrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='QOT') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+								if (quotePrice != null && quotePrice.next() && quotePrice.getBigDecimal("price") != null) {
+                                    rPrice = quotePrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                    quotePrice.close();
+                                }
+                                statement.close();
+}
+
+if(rPrice.equals(BigDecimal.ZERO)){
+ userPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='USR') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+									if (userPrice != null && userPrice.next() && userPrice.getBigDecimal("price") != null) {
+                                        rPrice = userPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                        userPrice.close();
+                                    }
+                                    statement.close();
+}
+
+if(rPrice.equals(BigDecimal.ZERO)){
+wdPrice = queryData("SELECT * FROM product_price WHERE (product_id='"+ productId +"') AND (product_price_type_id='WD1') AND (DATE(CURRENT_DATE()) BETWEEN DATE(from_date) AND DATE(thru_date)) LIMIT 1;");
+										if (wdPrice != null && wdPrice.next() && wdPrice.getBigDecimal("price") != null) {
+                                            rPrice = wdPrice.getBigDecimal("price").multiply(new BigDecimal(2.8));
+                                            wdPrice.close();
+                                        }
+                                        statement.close();
+}
+
+if(rPrice.equals(BigDecimal.ZERO)){
+rPrice = new BigDecimal(1234.56);                                       }
+}
+    */
